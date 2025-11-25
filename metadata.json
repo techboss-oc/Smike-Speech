@@ -1,5 +1,5 @@
 {
-  "name": "Gemini Vox",
-  "description": "High-quality AI text-to-speech generator using Gemini 2.5 Flash. Convert text to lifelike audio, choose from multiple voices, and download your creations.",
+  "name": "Smike Speach",
+  "description": "High-quality AI text-to-speech generator. Convert text to lifelike audio with Smike Speach.",
   "requestFramePermissions": []
 }

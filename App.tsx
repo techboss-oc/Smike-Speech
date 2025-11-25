@@ -1,17 +1,24 @@
-import React, { useState } from 'react';
-import { Sparkles, History, Volume2, MessageSquare, AlertCircle } from 'lucide-react';
-import { VOICES, GeneratedAudio } from './types';
+import React, { useState, useMemo } from 'react';
+import { Sparkles, History, Volume2, MessageSquare, AlertCircle, Mic2 } from 'lucide-react';
+import { VOICES, GeneratedAudio, VoiceGender } from './types';
 import { generateSpeech } from './services/geminiService';
 import { base64ToUint8Array, createWavBlob } from './utils/audioUtils';
 import { Button } from './components/Button';
 import { AudioCard } from './components/AudioCard';
+import { VoiceCard } from './components/VoiceCard';
 
 const App = () => {
   const [text, setText] = useState('');
   const [selectedVoice, setSelectedVoice] = useState(VOICES[0]);
+  const [selectedCategory, setSelectedCategory] = useState<'All' | VoiceGender>('All');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<GeneratedAudio[]>([]);
+
+  const filteredVoices = useMemo(() => {
+    if (selectedCategory === 'All') return VOICES;
+    return VOICES.filter(v => v.gender === selectedCategory);
+  }, [selectedCategory]);
 
   const handleGenerate = async () => {
     if (!text.trim()) return;
@@ -56,19 +63,19 @@ const App = () => {
       
       {/* Header */}
       <header className="sticky top-0 z-50 bg-slate-950/80 backdrop-blur-lg border-b border-slate-800">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center h-16 space-x-3">
             <div className="bg-indigo-600 p-2 rounded-lg">
-              <Sparkles className="text-white w-5 h-5" />
+              <Mic2 className="text-white w-5 h-5" />
             </div>
             <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
-              Gemini Vox
+              Smike Speach
             </h1>
           </div>
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
           {/* Left Column: Input and Controls */}
@@ -86,7 +93,7 @@ const App = () => {
                   value={text}
                   onChange={(e) => setText(e.target.value)}
                   placeholder="Enter text to convert to speech..."
-                  className="w-full h-48 bg-slate-950 border border-slate-800 rounded-xl p-4 text-base leading-relaxed text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all resize-none scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent"
+                  className="w-full h-32 lg:h-40 bg-slate-950 border border-slate-800 rounded-xl p-4 text-base leading-relaxed text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all resize-none scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent"
                   spellCheck={false}
                 />
                 <div className="absolute bottom-4 right-4 text-xs text-slate-600 font-mono">
@@ -95,43 +102,40 @@ const App = () => {
               </div>
 
               {/* Voice Selection */}
-              <div className="mt-6">
-                <div className="flex items-center space-x-2 mb-3 text-slate-400 uppercase text-xs font-semibold tracking-wider">
-                  <Volume2 size={14} />
-                  <span>Select Voice</span>
+              <div className="mt-8">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-2 text-slate-400 uppercase text-xs font-semibold tracking-wider">
+                    <Volume2 size={14} />
+                    <span>Select Voice</span>
+                  </div>
+                  
+                  {/* Category Tabs */}
+                  <div className="flex bg-slate-950 rounded-lg p-1 border border-slate-800">
+                    {(['All', 'Male', 'Female'] as const).map((cat) => (
+                      <button
+                        key={cat}
+                        onClick={() => setSelectedCategory(cat)}
+                        className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
+                          selectedCategory === cat 
+                            ? 'bg-slate-800 text-white shadow-sm' 
+                            : 'text-slate-500 hover:text-slate-300'
+                        }`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-                  {VOICES.map((voice) => (
-                    <button
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {filteredVoices.map((voice) => (
+                    <VoiceCard 
                       key={voice.id}
-                      onClick={() => setSelectedVoice(voice)}
-                      className={`relative group flex flex-col items-center p-3 rounded-xl border transition-all duration-200 ${
-                        selectedVoice.id === voice.id
-                          ? 'bg-indigo-600/10 border-indigo-500/50 ring-1 ring-indigo-500/50'
-                          : 'bg-slate-950 border-slate-800 hover:border-slate-700 hover:bg-slate-800/50'
-                      }`}
-                    >
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-2 text-xs font-bold transition-colors ${
-                        selectedVoice.id === voice.id 
-                          ? 'bg-indigo-500 text-white' 
-                          : 'bg-slate-800 text-slate-400 group-hover:bg-slate-700'
-                      }`}>
-                        {voice.name[0]}
-                      </div>
-                      <span className={`text-sm font-medium ${
-                        selectedVoice.id === voice.id ? 'text-indigo-400' : 'text-slate-300'
-                      }`}>
-                        {voice.name}
-                      </span>
-                      <span className="text-[10px] text-slate-500 mt-0.5">
-                        {voice.gender}
-                      </span>
-                    </button>
+                      voice={voice}
+                      isSelected={selectedVoice.id === voice.id}
+                      onSelect={setSelectedVoice}
+                    />
                   ))}
-                </div>
-                <div className="mt-3 text-xs text-slate-500 px-1">
-                   {selectedVoice.description}
                 </div>
               </div>
 
@@ -144,7 +148,7 @@ const App = () => {
               )}
 
               {/* Action Button */}
-              <div className="mt-6 flex justify-end">
+              <div className="mt-8 flex justify-end">
                 <Button 
                   onClick={handleGenerate} 
                   isLoading={isLoading} 
@@ -160,7 +164,7 @@ const App = () => {
 
           {/* Right Column: History */}
           <div className="lg:col-span-5 space-y-6">
-            <div className="bg-slate-900 rounded-2xl p-6 border border-slate-800 shadow-xl h-full flex flex-col">
+            <div className="bg-slate-900 rounded-2xl p-6 border border-slate-800 shadow-xl h-full flex flex-col min-h-[500px] lg:min-h-0">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center space-x-2 text-slate-400 uppercase text-xs font-semibold tracking-wider">
                   <History size={14} />
@@ -179,12 +183,12 @@ const App = () => {
                 )}
               </div>
 
-              <div className="space-y-4 flex-1 overflow-y-auto max-h-[600px] pr-2 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
+              <div className="space-y-4 flex-1 overflow-y-auto max-h-[calc(100vh-250px)] pr-2 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
                 {history.length === 0 ? (
-                  <div className="h-48 flex flex-col items-center justify-center text-slate-600 border-2 border-dashed border-slate-800 rounded-xl">
+                  <div className="h-48 flex flex-col items-center justify-center text-slate-600 border-2 border-dashed border-slate-800 rounded-xl mt-8">
                     <Volume2 size={32} className="mb-3 opacity-20" />
                     <p className="text-sm">No audio generated yet</p>
-                    <p className="text-xs mt-1">Select a voice and type some text.</p>
+                    <p className="text-xs mt-1 text-slate-500">Select a voice and type some text.</p>
                   </div>
                 ) : (
                   history.map(item => (
